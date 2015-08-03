@@ -1,0 +1,32 @@
+#!/usr/bin/ipython3
+
+from time import sleep
+from datetime import datetime, timedelta
+
+# Download interval, e.g. every 5 minutes
+minutes_interval = 5
+
+url = "http://m.vvs.de/VELOC"
+    
+# Wait until the next full X minutes, e.g. at 14:52:23
+# with minute=5 it will wait until 14:55:00
+def until_next_full(minute):
+    now = datetime.now()
+    minutes = minute - (now.minute % minute) - 1
+    seconds = 60 - now.second
+    delta = timedelta(minutes=minutes, seconds=seconds)
+    return delta
+    
+while True:
+
+      delay = until_next_full(minutes_interval)
+      nextDownload = datetime.now() + delay
+      timestamp = nextDownload.strftime("%Y-%m-%d_%H:%M:%S")
+      print('Sleeping until %s' % timestamp)
+
+      sleep(delay.total_seconds())
+
+      filename = "VELOC_" + timestamp + ".json"
+
+      print("!wget --output-document=%s %s" % (filename, url))
+      !wget --output-document=$filename $url

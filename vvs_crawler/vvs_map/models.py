@@ -2,24 +2,38 @@ from django.db import models
 
 # Create your models here.
 
-class MapEntry(models.Model):
-    created = models.DateTimeField(auto_created=True, auto_now=True)
-    timestamp_before = models.DateTimeField()
-    vvs_id = models.IntegerField()
-    direction_text = models.TextField()
-    line_text = models.TextField()
-    longitude = models.IntegerField()
-    latitude_before = models.IntegerField(null=True, blank=True)
-    is_at_stop = models.BooleanField()
-    timestamp = models.DateTimeField()
+
+class VVSTransport(models.Model):
+    direction_text = models.CharField(max_length=300)
+    line_text = models.CharField(max_length=300)
     journey_id = models.IntegerField()
-    delay = models.IntegerField()
-    current_stop = models.CharField(max_length=300)
-    product_id = models.CharField(max_length=300)
-    mod_code = models.IntegerField()
-    real_time_available = models.BooleanField()
-    longitude_before = models.IntegerField(null=True, blank=True)
-    day_of_operation = models.DateTimeField()
     operator = models.TextField()
+    mod_code = models.IntegerField()
+    product_id = models.CharField(max_length=300)
+
+    class Meta:
+        unique_together = ("direction_text", "line_text", "journey_id")
+
+    def __str__(self):
+        return "Linie {}, Richtung {}, Journey_id {}".format(self.line_text, self.direction_text, self.journey_id)
+
+
+class VVSJourney(models.Model):
+    vvs_transport = models.ForeignKey("vvs_map.VVSTransport")
+    day_of_operation = models.DateTimeField()
+    vvs_id = models.IntegerField()
+
+
+class VVSData(models.Model):
+    vvs_journey = models.ForeignKey("VVSJourney")
+    timestamp = models.DateTimeField()
+    timestamp_before = models.DateTimeField()
+    longitude = models.IntegerField()
+    longitude_before = models.IntegerField(null=True, blank=True)
     latitude = models.IntegerField()
+    latitude_before = models.IntegerField(null=True, blank=True)
+    delay = models.IntegerField()
+    is_at_stop = models.BooleanField()
+    current_stop = models.CharField(max_length=300)
     next_stop = models.CharField(max_length=300)
+    real_time_available = models.BooleanField()

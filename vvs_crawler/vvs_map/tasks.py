@@ -1,6 +1,6 @@
 __author__ = 'fritz'
 import requests
-from .models import MapEntry
+from .models import VVSData, VVSJourney, VVSTransport
 import datetime
 from vvs_crawler.celery import app
 
@@ -16,6 +16,8 @@ def get_json(args):
 
         day_of_operation = unix_timestamp_to_datetime(entry.get("DayOfOperation")[6:16])
         timestamp = unix_timestamp_to_datetime(entry.get("Timestamp")[6:16])
+
+
 
         vvs_id = entry.get("ID")
         direction_text = entry.get("DirectionText")
@@ -38,7 +40,30 @@ def get_json(args):
             is_at_stop = False
         else:
             is_at_stop = True
-        MapEntry.objects.create(timestamp=timestamp,
+
+        transport, created = VVSTransport.objects.get_or_create(line_text=line_text,
+                                                       direction_text=direction_text,
+                                                       journey_id=journey_id,
+                                                       operator=operator,
+                                                       mod_code=mod_code,
+                                                       product_id=product_id)
+        journey, created = VVSJourney.objects.get_or_create(vvs_transport=transport,
+                                                   day_of_operation=day_of_operation,
+                                                   vvs_id=vvs_id)
+
+        VVSData.objects.create(vvs_journey=journey,
+                               timestamp=timestamp,
+                               timestamp_before=timestamp_before,
+                               longitude=longitude,
+                               longitude_before=longitude_before,
+                               latitude=latitude,
+                               latitude_before=latitude_before,
+                               delay=delay,
+                               current_stop=current_stop,
+                               next_stop=next_stop,
+                               real_time_available=real_time_available,
+                               is_at_stop=is_at_stop)
+        """MapEntry.objects.create(timestamp=timestamp,
                                 day_of_operation=day_of_operation,
                                 timestamp_before=timestamp_before,
                                 vvs_id=vvs_id,
@@ -57,7 +82,7 @@ def get_json(args):
                                 operator=operator,
                                 latitude=latitude,
                                 next_stop=next_stop
-        )
+        )"""
 
 
 def unix_timestamp_to_datetime(timestamp):

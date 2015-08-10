@@ -21,7 +21,7 @@ class VVSTransport(models.Model):
 class VVSJourney(models.Model):
     vvs_transport = models.ForeignKey("vvs_map.VVSTransport")
     day_of_operation = models.DateTimeField()
-    vvs_id = models.IntegerField()
+    vvs_id = models.IntegerField(unique=True)
 
 
 class VVSData(models.Model):

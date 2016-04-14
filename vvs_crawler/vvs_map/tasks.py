@@ -53,7 +53,10 @@ def get_json(args):
 
         direction, created = Direction.objects.get_or_create(name=entry.get("DirectionText").encode('iso-8859-1').decode('utf-8'))
         current_stop, created = Stop.objects.get_or_create(vvs_id=entry.get("CurrentStop").split("#")[0])
-        next_stop, created = Stop.objects.get_or_create(vvs_id=entry.get("NextStop").split("#")[0])
+        if entry.get("NextStop").split("#")[0]:
+            next_stop, created = Stop.objects.get_or_create(vvs_id=entry.get("NextStop").split("#")[0])
+        else:
+            next_stop = current_stop
 
         line, created = Line.objects.get_or_create(line_text=line_text)
 

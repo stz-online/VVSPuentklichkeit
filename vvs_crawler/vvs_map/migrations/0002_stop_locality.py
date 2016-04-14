@@ -7,17 +7,14 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('vvs_map', '0004_auto_20150809_1344'),
+        ('vvs_map', '0001_initial'),
     ]
 
     operations = [
-        migrations.DeleteModel(
-            name='MapEntry',
-        ),
         migrations.AddField(
-            model_name='vvsdata',
-            name='is_at_stop',
-            field=models.BooleanField(default=False),
+            model_name='stop',
+            name='locality',
+            field=models.CharField(default='', max_length=300),
             preserve_default=False,
         ),
     ]

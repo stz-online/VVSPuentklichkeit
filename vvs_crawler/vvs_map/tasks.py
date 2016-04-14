@@ -1,15 +1,24 @@
 __author__ = 'fritz'
 import requests
-from .models import VVSData, VVSJourney, VVSTransport
+from .models import VVSData, VVSJourney, VVSTransport, Stop, Line, Direction
 import datetime
 from vvs_crawler.celery import app
+from pytz import UTC
+from django.contrib.gis.geos import Point
+from django.core.cache import cache
+import sendgrid
+import os
+from YamJam import yamjam
 
 
 @app.task(bind=True)
 def get_json(args):
-    binary = requests.get('http://m.vvs.de/VELOC')
-    json = binary.json()
+    request_json = requests.get('http://m.vvs.de/VELOC')
+    json = request_json.json()
+    keys = yamjam("keys.yaml")
 
+    client = sendgrid.SendGridClient(keys["sendgrid"]["key"])
+    messages = []
 
     for entry in json:
         timestamp_before = unix_timestamp_to_datetime(entry.get("TimestampBefore")[6:16])
@@ -19,30 +28,43 @@ def get_json(args):
 
 
 
+
         vvs_id = entry.get("ID")
-        direction_text = entry.get("DirectionText")
+
         line_text = entry.get("LineText")
         longitude = entry.get("Longitude")
-        latitude_before = entry.get("LatitudeBefore", "")
+        longitude_before = entry.get("LongitudeBefore", "0")
+        latitude = entry.get("Latitude")
+        latitude_before = entry.get("LatitudeBefore", "0")
+        if latitude_before is None:
+            latitude_before = 0
+        if longitude_before is None:
+            longitude_before = 0
         is_at_stop = entry.get("IsAtStop")
         journey_id = entry.get("JourneyIdentifier")
         delay = entry.get("Delay")
-        current_stop = entry.get("CurrentStop")
+
         product_id = entry.get("ProductIdentifier")
         mod_code = entry.get("ModCode")
         real_time_available = entry.get("RealtimeAvailable")
-        longitude_before = entry.get("LongitudeBefore")
+
 
         operator = entry.get("Operator")
-        latitude = entry.get("Latitude")
-        next_stop = entry.get("NextStop")
+
+        direction, created = Direction.objects.get_or_create(name=entry.get("DirectionText").encode('iso-8859-1').decode('utf-8'))
+        current_stop, created = Stop.objects.get_or_create(vvs_id=entry.get("CurrentStop").split("#")[0])
+        next_stop, created = Stop.objects.get_or_create(vvs_id=entry.get("CurrentStop").split("#")[0])
+
+        line, created = Line.objects.get_or_create(line_text=line_text)
+
+
         if not is_at_stop:
             is_at_stop = False
         else:
             is_at_stop = True
 
-        transport, created = VVSTransport.objects.get_or_create(line_text=line_text,
-                                                       direction_text=direction_text,
+        transport, created = VVSTransport.objects.get_or_create(line=line,
+                                                       direction=direction,
                                                        journey_id=journey_id,
                                                        operator=operator,
                                                        mod_code=mod_code,
@@ -50,40 +72,53 @@ def get_json(args):
         journey, created = VVSJourney.objects.get_or_create(vvs_transport=transport,
                                                    day_of_operation=day_of_operation,
                                                    vvs_id=vvs_id)
+        if not cache.get(journey.id) and delay > 0:
+            cache.set(journey.id, delay, 5*60) # 5 Minute timeout
+            message = sendgrid.Mail()
+            message.add_to(keys['vvs']['email_1'])
+            message.add_to(keys['vvs']['email_2'])
+            message.set_from(keys['vvs']['from_mail'])
+            message.set_subject("VVS Crawler")
+            message.set_html("{} Richtung {} hat {}s Verspätung".format(line.line_text, direction.name, str(delay)))
+            messages.append(message)
+            print("{} Richtung {} hat {}s Verspätung".format(line.line_text, direction.name, str(delay)))
+
+        if delay == 0:
+            cache.delete(journey.id)
 
         VVSData.objects.create(vvs_journey=journey,
                                timestamp=timestamp,
                                timestamp_before=timestamp_before,
-                               longitude=longitude,
-                               longitude_before=longitude_before,
-                               latitude=latitude,
-                               latitude_before=latitude_before,
+                               coordinates_before = Point(float(longitude_before), float(latitude_before)),
+                               coordinates = Point(float(longitude), float(latitude)),
                                delay=delay,
                                current_stop=current_stop,
                                next_stop=next_stop,
                                real_time_available=real_time_available,
                                is_at_stop=is_at_stop)
-        """MapEntry.objects.create(timestamp=timestamp,
-                                day_of_operation=day_of_operation,
-                                timestamp_before=timestamp_before,
-                                vvs_id=vvs_id,
-                                direction_text=direction_text,
-                                line_text=line_text,
-                                longitude=longitude,
-                                latitude_before=latitude_before,
-                                is_at_stop=is_at_stop,
-                                journey_id=journey_id,
-                                delay=delay,
-                                current_stop=current_stop,
-                                product_id=product_id,
-                                mod_code=mod_code,
-                                real_time_available=real_time_available,
-                                longitude_before=longitude_before,
-                                operator=operator,
-                                latitude=latitude,
-                                next_stop=next_stop
-        )"""
+    for message in messages:
+        client.send(message)
 
 
 def unix_timestamp_to_datetime(timestamp):
-    return datetime.datetime.fromtimestamp(int(timestamp))
+    return datetime.datetime.fromtimestamp(int(timestamp)).replace(tzinfo=UTC)
+
+def crawl_stop_names():
+    url = "http://m.vvs.de/jqm/controller/XSLT_COORD_REQUEST?&coord=3511295%3A755934%3ANBWT&inclFilter=1&language=en&outputFormat=json&type_1=STOP&radius_1=300000000&coordOutputFormat=WGS84[DD.ddddd]"
+    response = requests.get(url)
+    response_json = response.json()
+    for pin in response_json.get('pins'):
+        if pin.get('type') == "STOP":
+            try:
+                stop = Stop.objects.get(vvs_id=pin.get('id'))
+                stop.name = pin.get('desc').encode('iso-8859-1').decode('utf-8')
+                stop.locality = pin.get('locality').encode('iso-8859-1').decode('utf-8')
+                longitude, latitude = pin.get('coords').split(',')
+                stop.coordinates = Point(float(longitude),float(latitude))
+                stop.save()
+                print(stop)
+            except Stop.DoesNotExist:
+
+                pass
+
+

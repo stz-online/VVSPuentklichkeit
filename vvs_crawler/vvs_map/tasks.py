@@ -53,7 +53,7 @@ def get_json(args):
 
         direction, created = Direction.objects.get_or_create(name=entry.get("DirectionText").encode('iso-8859-1').decode('utf-8'))
         current_stop, created = Stop.objects.get_or_create(vvs_id=entry.get("CurrentStop").split("#")[0])
-        next_stop, created = Stop.objects.get_or_create(vvs_id=entry.get("CurrentStop").split("#")[0])
+        next_stop, created = Stop.objects.get_or_create(vvs_id=entry.get("NextStop").split("#")[0])
 
         line, created = Line.objects.get_or_create(line_text=line_text)
 
@@ -78,7 +78,7 @@ def get_json(args):
             message.add_to(keys['vvs']['email_1'])
             message.add_to(keys['vvs']['email_2'])
             message.set_from(keys['vvs']['from_mail'])
-            message.set_subject("VVS Crawler") 
+            message.set_subject("VVS Crawler")
             message.set_html("{} Richtung {} mit der nächsten Haltestelle {} hat {}s Verspätung".format(line.line_text, direction.name, next_stop.name, str(delay)))
             messages.append(message)
             print("{} Richtung {} mit der nächsten Haltestelle {} hat {}s Verspätung".format(line.line_text, direction.name, next_stop.name, str(delay)))

@@ -78,10 +78,10 @@ def get_json(args):
             message.add_to(keys['vvs']['email_1'])
             message.add_to(keys['vvs']['email_2'])
             message.set_from(keys['vvs']['from_mail'])
-            message.set_subject("VVS Crawler")
-            message.set_html("{} Richtung {} hat {}s Verspätung".format(line.line_text, direction.name, str(delay)))
+            message.set_subject("VVS Crawler") 
+            message.set_html("{} Richtung {} mit der nächsten Haltestelle {} hat {}s Verspätung".format(line.line_text, direction.name, next_stop.name, str(delay)))
             messages.append(message)
-            print("{} Richtung {} hat {}s Verspätung".format(line.line_text, direction.name, str(delay)))
+            print("{} Richtung {} mit der nächsten Haltestelle {} hat {}s Verspätung".format(line.line_text, direction.name, next_stop.name, str(delay)))
 
         if delay == 0:
             cache.delete(journey.id)

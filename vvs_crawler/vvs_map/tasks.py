@@ -5,20 +5,27 @@ import datetime
 from vvs_crawler.celery import app
 from pytz import UTC
 from django.contrib.gis.geos import Point
-
+from django.core.cache import cache
+import sendgrid
+import os
+from YamJam import yamjam
 
 
 @app.task(bind=True)
 def get_json(args):
     request_json = requests.get('http://m.vvs.de/VELOC')
     json = request_json.json()
+    keys = yamjam("keys.yaml")
 
+    client = sendgrid.SendGridClient(keys["sendgrid"]["key"])
+    messages = []
 
     for entry in json:
         timestamp_before = unix_timestamp_to_datetime(entry.get("TimestampBefore")[6:16])
 
         day_of_operation = unix_timestamp_to_datetime(entry.get("DayOfOperation")[6:16])
         timestamp = unix_timestamp_to_datetime(entry.get("Timestamp")[6:16])
+
 
 
 
@@ -65,7 +72,19 @@ def get_json(args):
         journey, created = VVSJourney.objects.get_or_create(vvs_transport=transport,
                                                    day_of_operation=day_of_operation,
                                                    vvs_id=vvs_id)
+        if not cache.get(journey.id) and delay > 0:
+            cache.set(journey.id, delay, 5*60) # 5 Minute timeout
+            message = sendgrid.Mail()
+            message.add_to(keys['vvs']['email_1'])
+            message.add_to(keys['vvs']['email_2'])
+            message.set_from(keys['vvs']['from_mail'])
+            message.set_subject("VVS Crawler")
+            message.set_html("{} Richtung {} hat {}s Verspätung".format(line.line_text, direction.name, str(delay)))
+            messages.append(message)
+            print("{} Richtung {} hat {}s Verspätung".format(line.line_text, direction.name, str(delay)))
 
+        if delay == 0:
+            cache.delete(journey.id)
 
         VVSData.objects.create(vvs_journey=journey,
                                timestamp=timestamp,
@@ -77,6 +96,8 @@ def get_json(args):
                                next_stop=next_stop,
                                real_time_available=real_time_available,
                                is_at_stop=is_at_stop)
+    for message in messages:
+        client.send(message)
 
 
 def unix_timestamp_to_datetime(timestamp):

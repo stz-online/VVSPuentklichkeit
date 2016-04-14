@@ -10,6 +10,7 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+from YamJam import yamjam
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 
@@ -17,7 +18,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '83&okbbz0enyf4s+y%(o%b@z2ttxhf9cv%f_l$xlt9%olyzxt$'
+keys = yamjam("keys.yaml")
+SECRET_KEY = keys['django_secret_key']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -55,7 +57,7 @@ ROOT_URLCONF = 'vvs_crawler.urls'
 
 WSGI_APPLICATION = 'vvs_crawler.wsgi.application'
 
-BROKER_URL = 'redis://:{}@localhost:6379/4'.format(os.environ['redis_pw'])
+BROKER_URL = 'redis://:{}@localhost:6379/4'.format(keys["redis"]["password"])
 # Database
 # https://docs.djangoproject.com/en/1.7/ref/settings/#databases
 from datetime import timedelta
@@ -80,6 +82,13 @@ DATABASES = {
             'PORT': '',                      # Set to empty string for default.
         }
     }
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '127.0.0.1:11211',
+    }
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/

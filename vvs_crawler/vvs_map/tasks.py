@@ -18,7 +18,7 @@ def get_json(args):
     keys = yamjam("keys.yaml")
 
     client = sendgrid.SendGridClient(keys["sendgrid"]["key"])
-    messages = []
+    lines = []
 
     for entry in json:
         timestamp_before = unix_timestamp_to_datetime(entry.get("TimestampBefore")[6:16])
@@ -77,13 +77,8 @@ def get_json(args):
                                                    vvs_id=vvs_id)
         if not cache.get(journey.id) and delay > 0:
             cache.set(journey.id, delay, 5*60) # 5 Minute timeout
-            message = sendgrid.Mail()
-            message.add_to(keys['vvs']['email_1'])
-            message.add_to(keys['vvs']['email_2'])
-            message.set_from(keys['vvs']['from_mail'])
-            message.set_subject("VVS Crawler")
-            message.set_html("{} Richtung {} mit der nächsten Haltestelle {} hat {}s Verspätung".format(line.line_text, direction.name, next_stop.name, str(delay)))
-            messages.append(message)
+            lines.append("{} Richtung {} mit der nächsten Haltestelle {} hat {}s Verspätung</br>".format(line.line_text, direction.name, next_stop.name, str(delay)))
+
             print("{} Richtung {} mit der nächsten Haltestelle {} hat {}s Verspätung".format(line.line_text, direction.name, next_stop.name, str(delay)))
 
         if delay == 0:
@@ -99,8 +94,15 @@ def get_json(args):
                                next_stop=next_stop,
                                real_time_available=real_time_available,
                                is_at_stop=is_at_stop)
-    for message in messages:
-        client.send(message)
+    message = sendgrid.Mail()
+    message.add_to(keys['vvs']['email_1'])
+    message.add_to(keys['vvs']['email_2'])
+    message.set_from(keys['vvs']['from_mail'])
+    message.set_subject("VVS Crawler")
+    html = " ".join(lines)
+    message.set_html(html)
+    client.send(message)
+
 
 
 def unix_timestamp_to_datetime(timestamp):

@@ -52,9 +52,10 @@ def get_json(args):
         operator = entry.get("Operator")
 
         direction, created = Direction.objects.get_or_create(name=entry.get("DirectionText").encode('iso-8859-1').decode('utf-8'))
-        current_stop, created = Stop.objects.get_or_create(vvs_id=entry.get("CurrentStop").split("#")[0])
+
+        current_stop, created = Stop.objects.get_or_create(name=entry.get("CurrentStop").split("#")[0])
         if entry.get("NextStop").split("#")[0]:
-            next_stop, created = Stop.objects.get_or_create(vvs_id=entry.get("NextStop").split("#")[0])
+            next_stop, created = Stop.objects.get_or_create(name=entry.get("NextStop").split("#")[0])
         else:
             next_stop = current_stop
         try:

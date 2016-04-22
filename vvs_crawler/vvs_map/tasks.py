@@ -57,9 +57,10 @@ def get_json(args):
             next_stop, created = Stop.objects.get_or_create(vvs_id=entry.get("NextStop").split("#")[0])
         else:
             next_stop = current_stop
-
-        line, created = Line.objects.get_or_create(line_text=line_text)
-
+        try:
+            line, created = Line.objects.get_or_create(line_text=line_text)
+        except Line.MultipleObjectsReturned:
+            pass
 
         if not is_at_stop:
             is_at_stop = False

@@ -2,7 +2,7 @@ from django.contrib.gis.db import models
 
 # Create your models here.
 class Line(models.Model):
-    line_text = models.CharField(max_length=300)
+    line_text = models.CharField(max_length=300, unique=True)
 
 
 class VVSTransport(models.Model):
@@ -27,9 +27,12 @@ class VVSJourney(models.Model):
 
 class Stop(models.Model):
     vvs_id = models.CharField(max_length=300)
-    name = models.CharField(max_length=300)
+    name = models.CharField(max_length=300, unique=True)
     coordinates = models.PointField(null=True, blank=True)
     locality = models.CharField(max_length=300)
+
+
+
 
     def __str__(self):
         return "{}-{}".format(self.locality, self.name)

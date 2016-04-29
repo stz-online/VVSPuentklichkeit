@@ -53,9 +53,9 @@ def get_json(args):
 
         direction, created = Direction.objects.get_or_create(name=entry.get("DirectionText").encode('iso-8859-1').decode('utf-8'))
 
-        current_stop, created = Stop.objects.get_or_create(name=entry.get("CurrentStop").split("#")[0])
+        current_stop, created = Stop.objects.get_or_create(id=entry.get("CurrentStop").split("#")[0])
         if entry.get("NextStop").split("#")[0]:
-            next_stop, created = Stop.objects.get_or_create(name=entry.get("NextStop").split("#")[0])
+            next_stop, created = Stop.objects.get_or_create(id=entry.get("NextStop").split("#")[0])
         else:
             next_stop = current_stop
         try:
@@ -77,11 +77,12 @@ def get_json(args):
         journey, created = VVSJourney.objects.get_or_create(vvs_transport=transport,
                                                    day_of_operation=day_of_operation,
                                                    vvs_id=vvs_id)
-        if not cache.get(journey.id) and delay > 0:
-            cache.set(journey.id, delay, 5*60) # 5 Minute timeout
-            lines.append("{} Richtung {} mit der nächsten Haltestelle {} hat {}s Verspätung</br>".format(line.line_text, direction.name, next_stop.name, str(delay)))
+        if not cache.get(journey.id) and delay > 5*60:
+            cache.set(journey.id, delay, 60*60) # 5 Minute timeout
+            time_string = str(datetime.timedelta(seconds=delay))
+            lines.append("{} Richtung {} mit der nächsten Haltestelle {} hat {}s Verspätung</br>".format(line.line_text, direction.name, next_stop.name, str(time_string)))
 
-            print("{} Richtung {} mit der nächsten Haltestelle {} hat {}s Verspätung".format(line.line_text, direction.name, next_stop.name, str(delay)))
+            print("{} Richtung {} mit der nächsten Haltestelle {} hat {}s Verspätung".format(line.line_text, direction.name, next_stop.name, str(time_string)))
 
         if delay == 0:
             cache.delete(journey.id)

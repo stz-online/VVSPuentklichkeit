@@ -27,11 +27,12 @@ class VVSJourney(models.Model):
 
 class Stop(models.Model):
     vvs_id = models.CharField(max_length=300)
-    name = models.CharField(max_length=300, unique=True, null=True, blank=True)
+    name = models.CharField(max_length=300, null=True, blank=True)
     coordinates = models.PointField(null=True, blank=True)
     locality = models.CharField(max_length=300)
 
-
+    class Meta:
+        unique_together = ("name", "locality")
 
 
     def __str__(self):

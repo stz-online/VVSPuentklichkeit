@@ -68,6 +68,11 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(seconds=30),
         'args': ()
     },
+    'update-names': {
+        'task': 'vvs_map.tasks.crawl_stop_names',
+        'schedule': timedelta(minutes=10),
+        'args': ()
+    },
 }
 
 

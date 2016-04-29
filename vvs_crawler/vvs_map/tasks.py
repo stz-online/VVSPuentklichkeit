@@ -50,12 +50,14 @@ def get_json(args):
 
 
         operator = entry.get("Operator")
+        try:
+            direction, created = Direction.objects.get_or_create(name=entry.get("DirectionText").encode('iso-8859-1').decode('utf-8'))
+        except Direction.MultipleObjectsReturned:
+            pass
 
-        direction, created = Direction.objects.get_or_create(name=entry.get("DirectionText").encode('iso-8859-1').decode('utf-8'))
-
-        current_stop, created = Stop.objects.get_or_create(id=entry.get("CurrentStop").split("#")[0])
+        current_stop, created = Stop.objects.get_or_create(vvs_id=entry.get("CurrentStop").split("#")[0])
         if entry.get("NextStop").split("#")[0]:
-            next_stop, created = Stop.objects.get_or_create(id=entry.get("NextStop").split("#")[0])
+            next_stop, created = Stop.objects.get_or_create(vvs_id=entry.get("NextStop").split("#")[0])
         else:
             next_stop = current_stop
         try:
@@ -80,7 +82,7 @@ def get_json(args):
         if not cache.get(journey.id) and delay > 5*60:
             cache.set(journey.id, delay, 60*60) # 5 Minute timeout
             time_string = str(datetime.timedelta(seconds=delay))
-            lines.append("{} Richtung {} mit der nächsten Haltestelle {} hat {}s Verspätung</br>".format(line.line_text, direction.name, next_stop.name, str(time_string)))
+            lines.append("{} Richtung {} mit der nächsten Haltestelle {} hat {} Verspätung</br>".format(line.line_text, direction.name, next_stop.name, str(time_string)))
 
             print("{} Richtung {} mit der nächsten Haltestelle {} hat {}s Verspätung".format(line.line_text, direction.name, next_stop.name, str(time_string)))
 
@@ -118,7 +120,7 @@ def crawl_stop_names():
     for pin in response_json.get('pins'):
         if pin.get('type') == "STOP":
             try:
-                stop = Stop.objects.get(vvs_id=pin.get('id'))
+                stop = Stop.objects.get(vvs_id=int(pin.get('id')))
                 stop.name = pin.get('desc').encode('iso-8859-1').decode('utf-8')
                 stop.locality = pin.get('locality').encode('iso-8859-1').decode('utf-8')
                 longitude, latitude = pin.get('coords').split(',')

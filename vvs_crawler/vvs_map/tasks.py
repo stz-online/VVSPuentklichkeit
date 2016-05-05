@@ -113,6 +113,7 @@ def get_json(args):
 def unix_timestamp_to_datetime(timestamp):
     return datetime.datetime.fromtimestamp(int(timestamp)).replace(tzinfo=UTC)
 
+@app.task(bind=True)
 def crawl_stop_names():
     url = "http://m.vvs.de/jqm/controller/XSLT_COORD_REQUEST?&coord=3511295%3A755934%3ANBWT&inclFilter=1&language=en&outputFormat=json&type_1=STOP&radius_1=300000000&coordOutputFormat=WGS84[DD.ddddd]"
     response = requests.get(url)

@@ -1,5 +1,8 @@
+celerybeat-schedule
 logs/
 keys.yaml
+migrations/
+*.pid
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

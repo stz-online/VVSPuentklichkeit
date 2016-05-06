@@ -26,7 +26,7 @@ class VVSJourney(models.Model):
     vvs_id = models.IntegerField(unique=True)
 
 class Stop(models.Model):
-    vvs_id = models.CharField(max_length=300)
+    vvs_id = models.CharField(max_length=300, unique=True)
     name = models.CharField(max_length=300, null=True, blank=True)
     coordinates = models.PointField(null=True, blank=True)
     locality = models.CharField(max_length=300)
@@ -52,4 +52,4 @@ class VVSData(models.Model):
 
 
 class Direction(models.Model):
-    name = models.CharField(max_length=300)
+    name = models.CharField(max_length=300, unique=True)

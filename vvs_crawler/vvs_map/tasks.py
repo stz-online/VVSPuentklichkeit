@@ -9,6 +9,7 @@ from django.core.cache import cache
 import sendgrid
 import os
 from YamJam import yamjam
+import tweepy
 
 
 @app.task(bind=True)
@@ -16,8 +17,9 @@ def get_json(args):
     request_json = requests.get('http://m.vvs.de/VELOC')
     json = request_json.json()
     keys = yamjam("keys.yaml")
-
-    client = sendgrid.SendGridClient(keys["sendgrid"]["key"])
+    auth = tweepy.OAuthHandler(keys['twitter']['consumer_key'], keys['twitter']['consumer_secret'])
+    auth.set_access_token(keys['twitter']['access_token'], keys['twitter']['access_token_secret'])
+    api = tweepy.API(auth)
     lines = []
 
     for entry in json:
@@ -52,14 +54,20 @@ def get_json(args):
         operator = entry.get("Operator")
         try:
             direction, created = Direction.objects.get_or_create(name=entry.get("DirectionText").encode('iso-8859-1').decode('utf-8'))
-        except Direction.MultipleObjectsReturned:
+        except IntegrityError:
+            pass
+        try:
+            current_stop, created = Stop.objects.get_or_create(vvs_id=entry.get("CurrentStop").split("#")[0])
+        except IntegrityError:
+            pass
+        try:
+            if entry.get("NextStop").split("#")[0]:
+                next_stop, created = Stop.objects.get_or_create(vvs_id=entry.get("NextStop").split("#")[0])
+            else:
+                next_stop = current_stop
+        except IntegrityError:
             pass
 
-        current_stop, created = Stop.objects.get_or_create(vvs_id=entry.get("CurrentStop").split("#")[0])
-        if entry.get("NextStop").split("#")[0]:
-            next_stop, created = Stop.objects.get_or_create(vvs_id=entry.get("NextStop").split("#")[0])
-        else:
-            next_stop = current_stop
         try:
             line, created = Line.objects.get_or_create(line_text=line_text)
         except Line.MultipleObjectsReturned:
@@ -79,11 +87,16 @@ def get_json(args):
         journey, created = VVSJourney.objects.get_or_create(vvs_transport=transport,
                                                    day_of_operation=day_of_operation,
                                                    vvs_id=vvs_id)
-        if not cache.get(journey.id) and delay > 5*60:
-            cache.set(journey.id, delay, 60*60) # 5 Minute timeout
+        if not cache.get(journey.vvs_id) and delay >= 5*60:
+            print(journey.vvs_id)
+            cache.set(journey.vvs_id, delay, 60*60) # 5 Minute timeout
             time_string = str(datetime.timedelta(seconds=delay))
-            lines.append("{} Richtung {} mit der nächsten Haltestelle {} hat {} Verspätung</br>".format(line.line_text, direction.name, next_stop.name, str(time_string)))
-
+            text = "{} Richtung {} mit der nächsten Haltestelle {} hat {} Verspätung".format(line.line_text, direction.name, next_stop.name, str(time_string))
+            try:
+                api.update_status(text)
+            except tweepy.error.TweepError as e:
+                print(e)
+            
             print("{} Richtung {} mit der nächsten Haltestelle {} hat {}s Verspätung".format(line.line_text, direction.name, next_stop.name, str(time_string)))
 
         if delay == 0:
@@ -99,23 +112,14 @@ def get_json(args):
                                next_stop=next_stop,
                                real_time_available=real_time_available,
                                is_at_stop=is_at_stop)
-    message = sendgrid.Mail()
-    message.add_to(keys['vvs']['email_1'])
-    message.add_to(keys['vvs']['email_2'])
-    message.set_from(keys['vvs']['from_mail'])
-    message.set_subject("VVS Crawler")
-    html = " ".join(lines)
-    message.set_html(html)
-    client.send(message)
-
 
 
 def unix_timestamp_to_datetime(timestamp):
     return datetime.datetime.fromtimestamp(int(timestamp)).replace(tzinfo=UTC)
 
 @app.task(bind=True)
-def crawl_stop_names():
-    url = "http://m.vvs.de/jqm/controller/XSLT_COORD_REQUEST?&coord=3511295%3A755934%3ANBWT&inclFilter=1&language=en&outputFormat=json&type_1=STOP&radius_1=300000000&coordOutputFormat=WGS84[DD.ddddd]"
+def crawl_stop_names(args):
+    url = "http://m.vvs.de/jqm/controller/XSLT_COORD_REQUEST?&coord=3511295%3A755934%3ANBWT&inclFilter=1&language=en&outputFormat=json&type_1=STOP&radius_1=900000000&coordOutputFormat=WGS84[DD.ddddd]"
     response = requests.get(url)
     response_json = response.json()
     for pin in response_json.get('pins'):

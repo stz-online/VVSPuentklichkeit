@@ -10,7 +10,7 @@ class VVSTransport(models.Model):
     direction = models.ForeignKey('vvs_map.Direction')
     journey_id = models.IntegerField()
     operator = models.TextField()
-    mod_code = models.IntegerField()
+    mod_code = models.IntegerField() # Rbahn=0 sbahn=1 ubahn=3 bus=5
     product_id = models.CharField(max_length=300)
 
     class Meta:

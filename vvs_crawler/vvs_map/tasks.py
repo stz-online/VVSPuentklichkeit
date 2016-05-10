@@ -12,25 +12,35 @@ from YamJam import yamjam
 import tweepy
 
 
+MOD_RBAHN=0
+MOD_SBAHN=1
+MOD_UBAHN=3
+MOD_BUS=5
+
 @app.task(bind=True)
 def get_json(args):
     request_json = requests.get('http://m.vvs.de/VELOC')
     json = request_json.json()
     keys = yamjam("keys.yaml")
-    auth = tweepy.OAuthHandler(keys['twitter']['consumer_key'], keys['twitter']['consumer_secret'])
-    auth.set_access_token(keys['twitter']['access_token'], keys['twitter']['access_token_secret'])
-    api = tweepy.API(auth)
-    lines = []
+    auth = tweepy.OAuthHandler(keys['twitter']['rbahn']['consumer_key'], keys['twitter']['rbahn']['consumer_secret'])
+    auth.set_access_token(keys['twitter']['rbahn']['access_token'], keys['twitter']['rbahn']['access_token_secret'])
+    api_rbahn = tweepy.API(auth)
+    auth = tweepy.OAuthHandler(keys['twitter']['sbahn']['consumer_key'], keys['twitter']['sbahn']['consumer_secret'])
+    auth.set_access_token(keys['twitter']['sbahn']['access_token'], keys['twitter']['sbahn']['access_token_secret'])
+    api_sbahn = tweepy.API(auth)
+    auth = tweepy.OAuthHandler(keys['twitter']['ubahn']['consumer_key'], keys['twitter']['ubahn']['consumer_secret'])
+    auth.set_access_token(keys['twitter']['ubahn']['access_token'], keys['twitter']['ubahn']['access_token_secret'])
+    api_ubahn = tweepy.API(auth)
+    auth = tweepy.OAuthHandler(keys['twitter']['bus']['consumer_key'], keys['twitter']['bus']['consumer_secret'])
+    auth.set_access_token(keys['twitter']['bus']['access_token'], keys['twitter']['bus']['access_token_secret'])
+    api_bus = tweepy.API(auth)
+
 
     for entry in json:
         timestamp_before = unix_timestamp_to_datetime(entry.get("TimestampBefore")[6:16])
 
         day_of_operation = unix_timestamp_to_datetime(entry.get("DayOfOperation")[6:16])
         timestamp = unix_timestamp_to_datetime(entry.get("Timestamp")[6:16])
-
-
-
-
         vvs_id = entry.get("ID")
 
         line_text = entry.get("LineText")
@@ -70,7 +80,7 @@ def get_json(args):
 
         try:
             line, created = Line.objects.get_or_create(line_text=line_text)
-        except Line.MultipleObjectsReturned:
+        except IntegrityError:
             pass
 
         if not is_at_stop:
@@ -88,9 +98,17 @@ def get_json(args):
                                                    day_of_operation=day_of_operation,
                                                    vvs_id=vvs_id)
         if not cache.get(journey.vvs_id) and delay >= 5*60:
-            print(journey.vvs_id)
+
             cache.set(journey.vvs_id, delay, 60*60) # 5 Minute timeout
             time_string = str(datetime.timedelta(seconds=delay))
+            if mod_code == MOD_RBAHN:
+                api = api_rbahn
+            elif mod_code == MOD_SBAHN:
+                api = api_sbahn
+            elif mod_code == MOD_UBAHN:
+                api = api_ubahn
+            elif mod_code == MOD_BUS:
+                api = api_bus
             text = "{} Richtung {} mit der nächsten Haltestelle {} hat {} Verspätung".format(line.line_text, direction.name, next_stop.name, str(time_string))
             try:
                 api.update_status(text)
@@ -105,8 +123,8 @@ def get_json(args):
         VVSData.objects.create(vvs_journey=journey,
                                timestamp=timestamp,
                                timestamp_before=timestamp_before,
-                               coordinates_before = Point(float(longitude_before), float(latitude_before)),
-                               coordinates = Point(float(longitude), float(latitude)),
+                               coordinates_before=Point(float(longitude_before), float(latitude_before)),
+                               coordinates=Point(float(longitude), float(latitude)),
                                delay=delay,
                                current_stop=current_stop,
                                next_stop=next_stop,

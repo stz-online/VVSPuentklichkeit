@@ -98,7 +98,7 @@ def get_json(args):
                                                    day_of_operation=day_of_operation,
                                                    vvs_id=vvs_id)
         if not cache.get(journey.vvs_id) and delay >= 5*60:
-
+            print(journey.vvs_id)
             cache.set(journey.vvs_id, delay, 60*60) # 5 Minute timeout
             time_string = str(datetime.timedelta(seconds=delay))
             if mod_code == MOD_RBAHN:

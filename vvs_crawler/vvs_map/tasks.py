@@ -158,6 +158,7 @@ def crawl_stop_names(args):
 
 
 def get_max_delays_today():
+    keys = yamjam("keys.yaml")
     midnight = datetime.datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
     top_3_delays = VVSJourney.objects.filter(day_of_operation__gte=midnight).annotate(max_delay=Max('vvsdata__delay')).order_by('-max_delay')[:3]
     top_3_text = []

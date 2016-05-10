@@ -11,6 +11,7 @@ import os
 from YamJam import yamjam
 import tweepy
 from django.db import IntegrityError
+from django.db.models import Max
 
 MOD_RBAHN=0
 MOD_SBAHN=1

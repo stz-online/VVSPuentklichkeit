@@ -149,7 +149,6 @@ def crawl_stop_names(args):
                 longitude, latitude = pin.get('coords').split(',')
                 stop.coordinates = Point(float(longitude),float(latitude))
                 stop.save()
-                print(stop)
             except Stop.DoesNotExist:
 
                 pass

@@ -10,7 +10,7 @@ import sendgrid
 import os
 from YamJam import yamjam
 import tweepy
-
+from django.db import IntegrityError
 
 MOD_RBAHN=0
 MOD_SBAHN=1

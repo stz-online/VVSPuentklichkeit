@@ -97,7 +97,7 @@ def get_json(args):
         journey, created = VVSJourney.objects.get_or_create(vvs_transport=transport,
                                                    day_of_operation=day_of_operation,
                                                    vvs_id=vvs_id)
-        if not cache.get(journey.vvs_id) and delay >= 5*60:
+        if journey.vvs_id not in cache and delay >= 5*60:
             print(journey.vvs_id)
             cache.set(journey.vvs_id, delay, 60*60) # 5 Minute timeout
             time_string = str(datetime.timedelta(seconds=delay))
@@ -117,8 +117,8 @@ def get_json(args):
             
             print("{} Richtung {} mit der nächsten Haltestelle {} hat {}s Verspätung".format(line.line_text, direction.name, next_stop.name, str(time_string)))
 
-        if delay == 0:
-            cache.delete(journey.id)
+        if delay == 0 and journey.vvs_id in cache:
+            cache.delete(journey.vvs_id)
 
         VVSData.objects.create(vvs_journey=journey,
                                timestamp=timestamp,
@@ -151,6 +151,8 @@ def crawl_stop_names(args):
                 stop.save()
             except Stop.DoesNotExist:
 
+                pass
+            except IntegrityError:
                 pass
 
 

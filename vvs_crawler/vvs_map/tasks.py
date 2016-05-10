@@ -159,11 +159,12 @@ def crawl_stop_names(args):
 
 def get_max_delays_today():
     midnight = datetime.datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
-    top3delays = VVSJourney.objects.filter(day_of_operation__gte=midnight).annotate(max_delay=Max('vvsdata__delay')).order_by('-max_delay')[:3]
-    top1 = top3delays[0].vvs_transport.line.line_text + top3delays[0].max_delay
-    top2 = top3delays[1].vvs_transport.line.line_text + top3delays[1].max_delay
-    top3 = top3delays[2].vvs_transport.line.line_text + top3delays[2].max_delay
-    text = "Top 3 Verspätungen: {},{},{}".format(top1, top2, top3)
+    top_3_delays = VVSJourney.objects.filter(day_of_operation__gte=midnight).annotate(max_delay=Max('vvsdata__delay')).order_by('-max_delay')[:3]
+    top_3_text = []
+    for candidate in top_3_delays:
+        top_3_text.append("{}, {}s".format(candidate.vvs_transport.line.line_text, candidate.max_delay))
+
+    text = "Top 3 Verspätungen: {}".format(",".join(top_3_text))
     auth = tweepy.OAuthHandler(keys['twitter']['sbahn']['consumer_key'], keys['twitter']['sbahn']['consumer_secret'])
     auth.set_access_token(keys['twitter']['sbahn']['access_token'], keys['twitter']['sbahn']['access_token_secret'])
     api = tweepy.API(auth)

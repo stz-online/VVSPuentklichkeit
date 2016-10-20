@@ -6,3 +6,4 @@ class VVSDataSerializer(ModelSerializer):
 
     class Meta:
         model = VVSData
+        fields = '__all__'

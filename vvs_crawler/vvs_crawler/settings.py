@@ -40,7 +40,8 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.gis',
     'django_extensions',
-    'vvs_map'
+    'vvs_map',
+    'rest_framework'
 )
 
 MIDDLEWARE_CLASSES = (

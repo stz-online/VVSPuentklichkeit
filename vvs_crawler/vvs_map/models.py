@@ -44,7 +44,7 @@ class VVSData(models.Model):
     timestamp_before = models.DateTimeField()
     coordinates_before = models.PointField(help_text="Represented as (longitude, latitude)", null=True)
     coordinates = models.PointField(help_text="Represented as (longitude, latitude)")
-    delay = models.IntegerField()
+    delay = models.IntegerField(db_index=True)
     is_at_stop = models.BooleanField()
     current_stop = models.ForeignKey('vvs_map.Stop', related_name="current_stop")
     next_stop = models.ForeignKey('vvs_map.Stop', related_name="next_stop")

@@ -98,9 +98,9 @@ def get_json(args):
         journey, created = VVSJourney.objects.get_or_create(vvs_transport=transport,
                                                    day_of_operation=day_of_operation,
                                                    vvs_id=vvs_id)
-        if journey.vvs_id not in cache and delay >= 5*60:
+        if journey.vvs_id not in cache and delay >= 10*60:
             print(journey.vvs_id)
-            cache.set(journey.vvs_id, delay, 60*60) # 5 Minute timeout
+            cache.set(journey.vvs_id, delay, 60*60) # 60 Minute timeout
             time_string = str(datetime.timedelta(seconds=delay))
             if mod_code == MOD_RBAHN:
                 api = api_rbahn

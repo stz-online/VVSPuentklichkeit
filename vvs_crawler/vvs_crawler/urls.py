@@ -11,6 +11,7 @@ urlpatterns = [
     # url(r'^$', 'vvs_crawler.views.home', name='home'),
     # url(r'^blog/', include('blog.urls')),
     url(r'^admin/', include(admin.site.urls)),
+    url(r'^delays/', VVSDataViewSet.as_view({'get': 'list_delays'})),
 
 
 ]

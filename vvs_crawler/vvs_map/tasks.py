@@ -12,6 +12,8 @@ from YamJam import yamjam
 import tweepy
 from django.db import IntegrityError
 from django.db.models import Max
+import redis
+from operator import itemgetter
 
 MOD_RBAHN=0
 MOD_SBAHN=1
@@ -35,7 +37,7 @@ def get_json(args):
     auth = tweepy.OAuthHandler(keys['twitter']['bus']['consumer_key'], keys['twitter']['bus']['consumer_secret'])
     auth.set_access_token(keys['twitter']['bus']['access_token'], keys['twitter']['bus']['access_token_secret'])
     api_bus = tweepy.API(auth)
-
+    redis_connection = redis.StrictRedis(host='localhost', port=6379, db=0)
 
     for entry in json:
         timestamp_before = unix_timestamp_to_datetime(entry.get("TimestampBefore")[6:16])
@@ -100,8 +102,29 @@ def get_json(args):
                                                    vvs_id=vvs_id)
         if journey.vvs_id not in cache and delay >= 10*60:
             print(journey.vvs_id)
-            cache.set(journey.vvs_id, delay, 60*60) # 60 Minute timeout
             time_string = str(datetime.timedelta(seconds=delay))
+            text = "{} Richtung {} mit der nächsten Haltestelle {} hat {} Verspätung".format(line.line_text,
+                                                                                             direction.name,
+                                                                                             next_stop.name,
+                                                                                             str(time_string))
+            if not redis_connection.exists(journey.vvs_id):
+                redis.set(journey_id.vvs_id, text, 60*60)
+                keys = redis.keys(*)
+                if len(keys) > 20:
+                    time_to_live = []
+                    for key in keys:
+                        time_to_live.append((key, redis.ttl(key)))
+                    sorted(time_to_live, key=itemgetter(1))
+                    print(time_to_live)
+                    to_delete = time_to_live[0:len(time_to_live)-20]
+                    for key in to_delete:
+                        redis.delete(key)
+
+
+
+
+            cache.set(journey.vvs_id, delay, 60*60) # 60 Minute timeout
+
             if mod_code == MOD_RBAHN:
                 api = api_rbahn
             elif mod_code == MOD_SBAHN:
@@ -110,7 +133,6 @@ def get_json(args):
                 api = api_ubahn
             elif mod_code == MOD_BUS:
                 api = api_bus
-            text = "{} Richtung {} mit der nächsten Haltestelle {} hat {} Verspätung".format(line.line_text, direction.name, next_stop.name, str(time_string))
             try:
                 api.update_status(text)
             except tweepy.error.TweepError as e:

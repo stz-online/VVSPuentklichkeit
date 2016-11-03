@@ -17,7 +17,7 @@ class VVSDataViewSet(ModelViewSet):
         redis_connection = redis.StrictRedis(host='localhost', port=6379, db=0)
         keys = redis_connection.keys("*")
         if len(keys) > 0:
-            delays = self.redis_connection.mget(keys)
+            delays = redis_connection.mget(keys)
             if len(delays) > 0:
 
                 return JsonResponse(delays, safe=False)

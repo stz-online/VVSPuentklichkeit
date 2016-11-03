@@ -58,7 +58,7 @@ ROOT_URLCONF = 'vvs_crawler.urls'
 
 WSGI_APPLICATION = 'vvs_crawler.wsgi.application'
 
-BROKER_URL = 'redis://:{}@localhost:6379/4'.format(keys["redis"]["password"])
+BROKER_URL = 'redis://localhost:6379/4'.format(keys["redis"]["password"])
 # Database
 # https://docs.djangoproject.com/en/1.7/ref/settings/#databases
 from datetime import timedelta

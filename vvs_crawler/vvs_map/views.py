@@ -14,7 +14,7 @@ class VVSDataViewSet(ModelViewSet):
     queryset = VVSData.objects.filter(delay__gte=0).order_by('-timestamp')
 
     def list_delays(self, request, *args, **kwargs):
-        redis_connection = redis.StrictRedis(host='localhost', port=6379, db=0)
+        redis_connection = redis.StrictRedis(host='localhost', port=6379, db=1)
         keys = redis_connection.keys("*")
         if len(keys) > 0:
             delays = redis_connection.mget(keys)

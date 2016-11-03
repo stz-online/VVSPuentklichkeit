@@ -37,7 +37,7 @@ def get_json(args):
     auth = tweepy.OAuthHandler(keys['twitter']['bus']['consumer_key'], keys['twitter']['bus']['consumer_secret'])
     auth.set_access_token(keys['twitter']['bus']['access_token'], keys['twitter']['bus']['access_token_secret'])
     api_bus = tweepy.API(auth)
-    redis_connection = redis.StrictRedis(host='localhost', port=6379, db=0)
+    redis_connection = redis.StrictRedis(host='localhost', port=6379, db=1)
 
     for entry in json:
         timestamp_before = unix_timestamp_to_datetime(entry.get("TimestampBefore")[6:16])

@@ -113,7 +113,7 @@ def get_json(args):
                                                                                              next_stop.name)
             if not redis_connection.exists(journey.vvs_id):
                 redis.set(journey_id.vvs_id, json_text, 60*60)
-                keys = redis.keys(*)
+                keys = redis.keys("*")
                 if len(keys) > 20:
                     time_to_live = []
                     for key in keys:

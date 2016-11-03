@@ -24,4 +24,4 @@ class VVSDataViewSet(ModelViewSet):
                 delays = list(map(lambda x: json.loads(x.decode("utf-8")), delays))
                 return JsonResponse(delays, safe=False)
         else:
-            return Response(status=HTTP_404_NOT_FOUND)
+            return JsonResponse([], safe=False)

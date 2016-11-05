@@ -107,23 +107,24 @@ def get_json(args):
                                                                                              direction.name,
                                                                                              next_stop.name,
                                                                                              str(time_string))
-            json_text ='{"delay":"{}", "line":"{}","direction":"{}","next_stop":"{}"'.format(str(time_string),
+            json_text ="{{\"delay\":\"{}\", \"line\":\"{}\",\"direction\":\"{}\",\"next_stop\":\"{}\"}}".format(str(time_string),
                                                                                              line.line_text,
                                                                                              direction.name,
                                                                                              next_stop.name)
+            print(json_text)
             if not redis_connection.exists(journey.vvs_id):
-                redis.set(journey_id.vvs_id, json_text, 60*60)
-                keys = redis.keys("*")
-                print(keys)
+                redis_connection.set(journey.vvs_id, json_text, 60*60)
+                keys = redis_connection.keys("*")
+                print("redis")
                 if len(keys) > 20:
                     time_to_live = []
                     for key in keys:
-                        time_to_live.append((key, redis.ttl(key)))
+                        time_to_live.append((key, redis_connection.ttl(key)))
                     sorted(time_to_live, key=itemgetter(1))
                     print(time_to_live)
                     to_delete = time_to_live[0:len(time_to_live)-20]
                     for key in to_delete:
-                        redis.delete(key)
+                        redis_connection.delete(key)
 
 
 
